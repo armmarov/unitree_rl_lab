@@ -153,19 +153,21 @@ COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
             noise_step=0.02,
             border_width=0.25,
         ),
-        "slope_up": terrain_gen.MeshSlopedTerrainCfg(
+        "slope_up": terrain_gen.HfPyramidSlopedTerrainCfg(
             proportion=0.2,
             slope_range=(0.0, 0.4),
+            platform_width=1.0,
         ),
-        "slope_down": terrain_gen.MeshSlopedTerrainCfg(
+        "slope_down": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
             proportion=0.2,
             slope_range=(0.0, 0.4),
-            inverted=True,
+            platform_width=1.0,
         ),
-        "stairs_up": terrain_gen.MeshStairTerrainCfg(
+        "stairs_up": terrain_gen.HfPyramidStairsTerrainCfg(
             proportion=0.2,
-            stair_height_range=(0.03, 0.10),
-            stair_width_range=(0.25, 0.45),
+            step_height_range=(0.03, 0.10),
+            step_width=0.35,
+            platform_width=1.0,
         ),
     },
 )
@@ -174,8 +176,9 @@ COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
 **Notes:**
 - Flat reduced from 100% to 20% — still present for easy episodes
 - Rough terrain adds small random bumps — teaches foot placement
-- Slopes teach balance under gravity bias
-- Stairs are conservative (`0.03–0.10m` height) — PM01 is a 12-DOF legs-only biped with no arms for balance, so keep stair difficulty low initially
+- Slopes teach balance under gravity bias (uses `HfPyramidSlopedTerrainCfg` / `HfInvertedPyramidSlopedTerrainCfg`)
+- Stairs are conservative (`0.03–0.10m` step height) — PM01 is a 12-DOF legs-only biped with no arms for balance, so keep stair difficulty low initially
+- Stair params use `step_height_range` and `step_width` (float, not range) per IsaacLab API
 
 #### Change 4: Increase gait reward weight
 
@@ -246,7 +249,7 @@ tensorboard --logdir logs/rsl_rl/unitree_pm01_12dof_velocity/
 Watch for these during training:
 - `Loss/value_function > 1000` — warning, potential instability returning
 - `Loss/value_function > 1e10` — critical, likely to crash soon
-- `Policy/mean_noise_std` trending toward 0 — policy collapsing
+- `Loss/entropy` dropping sharply toward 0 (kill threshold: < 1.5) — policy collapsing. This is more reliable than `Policy/mean_noise_std` which may not be logged by RSL-RL.
 - `Curriculum/terrain_levels` — should now show real progression (was stuck at 5.3 on flat)
 
 ### Checkpoints to Evaluate
@@ -265,7 +268,7 @@ If Run 3 completes successfully but walking quality still needs improvement, app
 
 ### Add foot air time reward
 
-**Note:** Verify `mdp.feet_air_time_positive_biped` exists in your IsaacLab version — the function name varies across versions. If not found, search for `feet_air_time` variants in `isaaclab/envs/mdp/`.
+**Note:** Verify `mdp.feet_air_time_positive_biped` exists in your IsaacLab version — the function name varies across versions. If not found, search for `feet_air_time` variants: `grep -r "def feet_air_time" /path/to/IsaacLab/source/`.
 
 ```python
 feet_air_time = RewTerm(
