@@ -40,9 +40,11 @@ class BasePPORunnerCfg(RslRlOnPolicyRunnerCfg):
 class PM01PPORunnerCfg(BasePPORunnerCfg):
     """PPO config for PM01.
 
-    Only change from BasePPORunnerCfg: noise_std_type='log' to prevent
-    std from going negative (exp(x) > 0 for all x). All other params
-    inherit BasePPORunnerCfg defaults.
+    Changes from BasePPORunnerCfg:
+    - noise_std_type='log': prevents std from going negative (exp(x) > 0 for all x)
+    - gamma=0.95: reduces return magnitude to match G1's range, prevents value loss overflow
+      PM01's per-step reward is ~2x G1's (fewer penalties). With gamma=0.99, returns reach ~100
+      and outliers cause cascading value loss overflow. gamma=0.95 caps returns to ~20.
     """
 
     policy = RslRlPpoActorCriticCfg(
@@ -51,4 +53,18 @@ class PM01PPORunnerCfg(BasePPORunnerCfg):
         actor_hidden_dims=[512, 256, 128],
         critic_hidden_dims=[512, 256, 128],
         activation="elu",
+    )
+    algorithm = RslRlPpoAlgorithmCfg(
+        value_loss_coef=1.0,
+        use_clipped_value_loss=True,
+        clip_param=0.2,
+        entropy_coef=0.01,
+        num_learning_epochs=5,
+        num_mini_batches=4,
+        learning_rate=1.0e-3,
+        schedule="adaptive",
+        gamma=0.95,
+        lam=0.95,
+        desired_kl=0.01,
+        max_grad_norm=1.0,
     )
