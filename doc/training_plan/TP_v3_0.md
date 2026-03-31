@@ -4,7 +4,7 @@
 
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
-| v1.0 | 2026-03-31 | armmarov | Initial plan after first training runs, updated with discussion feedback |
+| v3.0 | 2026-03-31 | armmarov | Training plan for Run 3: PPO stability + terrain diversity + gait weight |
 
 ---
 
@@ -58,7 +58,7 @@ Additionally, gait reward weight (0.5) is half of velocity tracking weight (1.0)
 
 ---
 
-## Training Plan v1
+## Training Plan v3
 
 ### Goals
 
@@ -314,3 +314,48 @@ Try `period=1.0` instead of `0.8`. If PM01's legs have different proportions tha
 - Export best checkpoint to ONNX for real robot inference
 - Verify `joint_sdk_names` order matches PM01 hardware SDK
 - Test with `sim2sim` before deploying to hardware
+
+---
+
+## Pre-Training Sign-Off Checklist
+
+Verified by: Claude Opus 4.6
+Date: 2026-03-31
+
+### Change 1: PM01-specific PPO config
+- [x] `PM01PPORunnerCfg` class added to `rsl_rl_ppo_cfg.py`
+- [x] `empirical_normalization = True`
+- [x] `learning_rate = 5.0e-4` (was 1e-3)
+- [x] `value_loss_coef = 0.5` (was 1.0)
+- [x] `gamma = 0.98` (was 0.99)
+- [x] All other PPO params inherited correctly from `BasePPORunnerCfg`
+
+### Change 2: Gym registration updated
+- [x] `rsl_rl_cfg_entry_point` points to `PM01PPORunnerCfg` (was `BasePPORunnerCfg`)
+
+### Change 3: Terrain diversity
+- [x] `flat` proportion reduced to 0.2 (was 0.5, sole terrain)
+- [x] `rough` (`HfRandomUniformTerrainCfg`) added — proportion 0.2
+- [x] `slope_up` (`HfPyramidSlopedTerrainCfg`) added — proportion 0.2
+- [x] `slope_down` (`HfInvertedPyramidSlopedTerrainCfg`) added — proportion 0.2
+- [x] `stairs_up` (`HfPyramidStairsTerrainCfg`) added — proportion 0.2
+- [x] Terrain class names verified against IsaacLab source (`hf_terrains_cfg.py`)
+- [x] Stair params verified: `step_height_range` (tuple), `step_width` (float), `platform_width` (float)
+
+### Change 4: Gait reward weight
+- [x] `gait` weight changed to `1.0` (was 0.5)
+
+### Change 5: Velocity command ranges
+- [x] `lin_vel_x=(-0.1, 0.1)` — present
+- [x] `lin_vel_y=(-0.1, 0.1)` — present (was 0.0, 0.0 in Run 1)
+- [x] `ang_vel_z=(-0.1, 0.1)` — present (was 0.0, 0.0 in Run 1)
+
+### Other verifications
+- [x] `pm01.py` uses `UnitreeArticulationCfg` with `joint_sdk_names`
+- [x] `pm01.py` uses `UnitreeUrdfFileCfg` (not raw `UrdfFileCfg`)
+- [x] `pm01.py` uses `UNITREE_MODEL_DIR` for path resolution
+- [x] Termination `minimum_height=0.3` (lowered from 0.5)
+- [x] Undesired contacts regex `(?!.*ankle.*)` matches G1 pattern
+- [x] `RobotPlayEnvCfg` uses `limit_ranges` (not hardcoded velocity)
+
+### Status: APPROVED for Run 3
