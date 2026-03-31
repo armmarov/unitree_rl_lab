@@ -303,11 +303,64 @@ Try `period=1.0` instead of `0.8`. If PM01's legs have different proportions tha
 
 ---
 
-## If Training Still Crashes
+## Run 3 Result: CRASHED at iter 7051
 
-- Lower learning rate further to `3e-4` or `1e-4`
+Same `RuntimeError: normal expects all elements of std >= 0.0`. The PPO stability fixes (lr=5e-4, gamma=0.98, value_loss_coef=0.5, empirical_normalization) were **not sufficient**. Value loss spiked at iter 7044 (284e27), partially recovered, then cascaded into fatal crash at iter 7051.
+
+Key observations:
+- Terrain level dropped from 4.17 to 0.017 — diverse terrain was too hard, robot regressed
+- Episode length ~760-820 — never reached 1000
+- Gait reward 0.80 — actually improved vs Run 2's 0.69
+- Mean reward ~34 — lower than Run 2's ~51 (harder terrain, expected)
+
+**Conclusion:** The value loss explosion is not solvable with hyperparameter tuning alone. The root cause is unbounded returns in the loss computation. Need to clamp at the source.
+
+---
+
+## REQUIRED FIX: Clamp returns in PPO update
+
+**File:** `scripts/rsl_rl/train.py`
+
+Add this monkey-patch **after** the runner is created (after line 184) and **before** `runner.learn()` (line 204):
+
+```python
+# --- Monkey-patch PPO to clamp returns and skip explosive updates ---
+import torch
+_original_update = runner.alg.update.__func__
+
+def _safe_update(self):
+    """Wrapper that clamps returns to prevent fp32 overflow in value loss."""
+    # Clamp returns in storage to prevent explosive value loss
+    returns = self.storage.returns
+    max_return = 1000.0  # safe upper bound for fp32
+    if returns.abs().max() > max_return:
+        self.storage.returns = returns.clamp(-max_return, max_return)
+    return _original_update(self)
+
+import types
+runner.alg.update = types.MethodType(_safe_update, runner.alg)
+# --- End monkey-patch ---
+```
+
+This clamps GAE returns to `[-1000, 1000]` before they enter the value loss computation, preventing the fp32 overflow that corrupts the Adam optimizer.
+
+**Alternative (if monkey-patch doesn't work):** Directly edit `venv/.../rsl_rl/algorithms/ppo.py` line 309, add before it:
+```python
+returns_batch = returns_batch.clamp(-1000.0, 1000.0)
+```
+
+### Additional stability: Lower learning rate further
+
+Also change in `PM01PPORunnerCfg`:
+```python
+learning_rate=3.0e-4,   # was 5e-4 — further reduce
+```
+
+## If Training Still Crashes After Clamp
+
 - Reduce `num_learning_epochs` from 5 to 3
-- Patch RSL-RL to clamp value loss before backprop (skip update if `value_loss > threshold`)
+- Lower `max_return` clamp from 1000 to 100
+- Try `gamma=0.97`
 
 ## Deployment Preparation
 

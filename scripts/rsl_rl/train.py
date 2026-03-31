@@ -200,6 +200,22 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         os.path.join(log_dir, "params", os.path.basename(inspect.getfile(env_cfg.__class__))),
     )
 
+    # --- PM01 stability: clamp GAE returns to prevent fp32 overflow in value loss ---
+    # Root cause: PM01's per-step reward is ~2x G1's (fewer joints = fewer penalties).
+    # Large GAE returns cause value_loss spikes → Adam second moment corruption → std<0 crash.
+    # Normal returns are ~20-50; clamping at ±1000 prevents overflow without affecting training.
+    import types
+    _original_update = runner.alg.update.__func__
+
+    def _safe_update(self):
+        max_return = 1000.0
+        if self.storage.returns.abs().max() > max_return:
+            self.storage.returns = self.storage.returns.clamp(-max_return, max_return)
+        return _original_update(self)
+
+    runner.alg.update = types.MethodType(_safe_update, runner.alg)
+    # --- End PM01 stability patch ---
+
     # run training
     runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
 
