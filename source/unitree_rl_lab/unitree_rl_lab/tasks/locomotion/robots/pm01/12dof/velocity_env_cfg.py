@@ -47,29 +47,7 @@ COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
     difficulty_range=(0.0, 1.0),
     use_cache=False,
     sub_terrains={
-        "flat": terrain_gen.MeshPlaneTerrainCfg(proportion=0.2),
-        "rough": terrain_gen.HfRandomUniformTerrainCfg(
-            proportion=0.2,
-            noise_range=(0.02, 0.10),
-            noise_step=0.02,
-            border_width=0.25,
-        ),
-        "slope_up": terrain_gen.HfPyramidSlopedTerrainCfg(
-            proportion=0.2,
-            slope_range=(0.0, 0.4),
-            platform_width=1.0,
-        ),
-        "slope_down": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
-            proportion=0.2,
-            slope_range=(0.0, 0.4),
-            platform_width=1.0,
-        ),
-        "stairs_up": terrain_gen.HfPyramidStairsTerrainCfg(
-            proportion=0.2,
-            step_height_range=(0.03, 0.10),
-            step_width=0.35,
-            platform_width=1.0,
-        ),
+        "flat": terrain_gen.MeshPlaneTerrainCfg(proportion=0.5),
     },
 )
 
@@ -293,11 +271,11 @@ class RewardsCfg:
     )
 
     # -- joint regularization
-    joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-0.005)       # was -0.001 — increased to rebalance vs G1
+    joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)
     joint_acc = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.05)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-5.0)
-    energy = RewTerm(func=mdp.energy, weight=-5e-5)                 # was -2e-5 — increased to rebalance vs G1
+    energy = RewTerm(func=mdp.energy, weight=-2e-5)
 
     # -- leg lateral joints (hip roll + hip yaw should stay near default)
     joint_deviation_legs = RewTerm(
@@ -309,23 +287,11 @@ class RewardsCfg:
         )},
     )
 
-    # -- ankle deviation (new — analog to G1's arm deviation, rebalances positive/negative ratio)
-    joint_deviation_ankles = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.5,
-        params={"asset_cfg": SceneEntityCfg(
-            "robot",
-            joint_names=[
-                "j04_ankle_pitch_l", "j10_ankle_pitch_r",
-                "j05_ankle_roll_l", "j11_ankle_roll_r",
-            ],
-        )},
-    )
 
     # -- feet
     gait = RewTerm(
         func=mdp.feet_gait,
-        weight=1.0,
+        weight=0.5,
         params={
             "period": 0.8,
             "offset": [0.0, 0.5],

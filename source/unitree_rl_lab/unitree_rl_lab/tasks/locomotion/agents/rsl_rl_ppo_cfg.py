@@ -38,27 +38,17 @@ class BasePPORunnerCfg(RslRlOnPolicyRunnerCfg):
 
 @configclass
 class PM01PPORunnerCfg(BasePPORunnerCfg):
-    """PPO config for PM01 with stability improvements.
+    """PPO config for PM01.
 
-    Changes from BasePPORunnerCfg:
-    - empirical_normalization=True: normalizes observations, reduces return variance
-    - learning_rate=3e-4: reduced to minimize update magnitude and spike amplification
-    - value_loss_coef=0.5: dampens critic gradient contribution
-    - gamma=0.98: shorter return horizon directly reduces GAE magnitude that caused fp32 overflow
+    Only change from BasePPORunnerCfg: noise_std_type='log' to prevent
+    std from going negative (exp(x) > 0 for all x). All other params
+    inherit BasePPORunnerCfg defaults.
     """
 
-    empirical_normalization = True
-    algorithm = RslRlPpoAlgorithmCfg(
-        value_loss_coef=0.5,
-        use_clipped_value_loss=True,
-        clip_param=0.2,
-        entropy_coef=0.01,
-        num_learning_epochs=5,
-        num_mini_batches=4,
-        learning_rate=3.0e-4,
-        schedule="adaptive",
-        gamma=0.98,
-        lam=0.95,
-        desired_kl=0.01,
-        max_grad_norm=1.0,
+    policy = RslRlPpoActorCriticCfg(
+        init_noise_std=1.0,
+        noise_std_type="log",
+        actor_hidden_dims=[512, 256, 128],
+        critic_hidden_dims=[512, 256, 128],
+        activation="elu",
     )
