@@ -1,0 +1,76 @@
+# PM01 12-DOF Velocity Policy Deploy Configuration
+# Generated from training config in velocity_env_cfg.py
+
+step_dt: 0.02  # 50 Hz control loop (matches sim: decimation=4, dt=0.005)
+
+# Joint index mapping: policy output index → PM01 SDK motor index
+# Policy order matches joint_sdk_names from pm01.py:
+#   [j00_hip_pitch_l, j01_hip_roll_l, j02_hip_yaw_l,
+#    j03_knee_pitch_l, j04_ankle_pitch_l, j05_ankle_roll_l,
+#    j06_hip_pitch_r, j07_hip_roll_r, j08_hip_yaw_r,
+#    j09_knee_pitch_r, j10_ankle_pitch_r, j11_ankle_roll_r]
+#
+# TODO: Verify PM01 SDK motor indexing matches this order.
+# If SDK uses a different order, update this map accordingly.
+joint_ids_map: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+
+# Joint stiffness (kp) in N·m/rad — from pm01.py actuator config
+# hip_pitch=70, hip_roll=50, hip_yaw=50, knee=70, ankle_pitch=20, ankle_roll=20
+stiffness: [70.0, 50.0, 50.0, 70.0, 20.0, 20.0,
+            70.0, 50.0, 50.0, 70.0, 20.0, 20.0]
+
+# Joint damping (kd) in N·m·s/rad — from pm01.py actuator config
+# hip_pitch=7, hip_roll=5, hip_yaw=5, knee=7, ankle_pitch=2, ankle_roll=2
+damping: [7.0, 5.0, 5.0, 7.0, 2.0, 2.0,
+          7.0, 5.0, 5.0, 7.0, 2.0, 2.0]
+
+# Default joint positions (q0) — from pm01.py init_state
+default_joint_pos: [-0.24, 0.0, 0.0, 0.48, -0.24, 0.0,
+                    -0.24, 0.0, 0.0, 0.48, -0.24, 0.0]
+
+# Actions — joint position targets
+actions:
+  JointPositionAction:
+    clip: null
+    joint_names: [".*"]
+    scale: [0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
+            0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+    offset: [-0.24, 0.0, 0.0, 0.48, -0.24, 0.0,
+             -0.24, 0.0, 0.0, 0.48, -0.24, 0.0]
+
+# Observations — must match training config in velocity_env_cfg.py
+observations:
+  base_ang_vel:
+    scale: [0.2, 0.2, 0.2]
+    noise: [-0.2, 0.2]
+    history_length: 5
+  projected_gravity:
+    scale: [1.0, 1.0, 1.0]
+    noise: [-0.05, 0.05]
+    history_length: 5
+  velocity_commands:
+    func: keyboard_velocity_commands
+    scale: [1.0, 1.0, 1.0]
+    history_length: 5
+  joint_pos_rel:
+    scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    noise: [-0.01, 0.01]
+    history_length: 5
+  joint_vel_rel:
+    scale: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05,
+            0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
+    noise: [-1.5, 1.5]
+    history_length: 5
+  last_action:
+    scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    history_length: 5
+
+# Velocity command ranges (for keyboard scaling)
+commands:
+  base_velocity:
+    ranges:
+      lin_vel_x: [-0.5, 1.0]
+      lin_vel_y: [-0.3, 0.3]
+      ang_vel_z: [-0.5, 0.5]

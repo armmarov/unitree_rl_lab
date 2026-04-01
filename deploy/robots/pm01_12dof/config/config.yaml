@@ -1,0 +1,38 @@
+FSM:
+  _: # enabled fsms
+    Passive:
+      id: 1
+    FixStand:
+      id: 2
+    Velocity:
+      id: 3
+      type: RLBase
+
+  Passive:
+    transitions:
+      FixStand: LT + up.on_pressed
+    # PM01 12-DOF: 6 left leg + 6 right leg
+    mode: [1,1,1,1,1,1, 1,1,1,1,1,1]
+    kd:   [3,3,3,3,3,3, 3,3,3,3,3,3]
+
+  FixStand:
+    transitions:
+      Passive: LT + B.on_pressed
+      Velocity: RB + X.on_pressed
+    # PM01 PD gains per joint (12 DOF)
+    # Order: hip_pitch, hip_roll, hip_yaw, knee, ankle_pitch, ankle_roll (L then R)
+    kp: [70, 50, 50, 70, 20, 20,
+         70, 50, 50, 70, 20, 20]
+    kd: [7, 5, 5, 7, 2, 2,
+         7, 5, 5, 7, 2, 2]
+    ts: [0, 3]
+    qs: [
+      [],
+      [ -0.24, 0, 0, 0.48, -0.24, 0,
+        -0.24, 0, 0, 0.48, -0.24, 0 ]
+    ]
+
+  Velocity:
+    transitions:
+      Passive: LT + B.on_pressed
+    policy_dir: config/policy/velocity
