@@ -1,9 +1,11 @@
-"""PM01 24-DOF biped velocity-tracking environment.
+"""PM01 12-DOF action / 24-joint body velocity-tracking environment.
 
-Adapted from PM01 12-DOF config:
-- Full 24-DOF robot (legs + waist + arms + head)
-- Added arm/waist/head joint deviation rewards (similar to G1 29-DOF)
-- All 24 joints actuated in action space
+Full 24-joint robot body (legs + waist + arms + head) for correct physics,
+but only 12 leg joints are actuated by the policy. Upper body stays at
+default positions (passive) with deviation penalties.
+
+This gives better sim-to-real than the 12-DOF URDF (which has fixed joints
+for upper body) because the full body mass/inertia is simulated.
 """
 
 import math
@@ -181,11 +183,11 @@ class CommandsCfg:
 
 @configclass
 class ActionsCfg:
-    """Action specifications for the MDP — all 24 joints."""
+    """Action specifications for the MDP — 12 leg joints only (upper body passive)."""
 
     JointPositionAction = mdp.JointPositionActionCfg(
         asset_name="robot",
-        joint_names=[".*"],  # all 24 joints
+        joint_names=["j0.*", "j1.*"],  # 12 leg joints only (j00-j05 left, j06-j11 right)
         scale=0.25,
         use_default_offset=True,
     )
@@ -197,7 +199,7 @@ class ObservationsCfg:
 
     @configclass
     class PolicyCfg(ObsGroup):
-        """Observations for policy group — 24 DOF."""
+        """Observations for policy group — 24 joints observed, 12 actuated."""
 
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.2, noise=Unoise(n_min=-0.2, n_max=0.2))
         projected_gravity = ObsTerm(func=mdp.projected_gravity, noise=Unoise(n_min=-0.05, n_max=0.05))
@@ -233,10 +235,11 @@ class ObservationsCfg:
 
 @configclass
 class RewardsCfg:
-    """Reward terms for PM01 24-DOF.
+    """Reward terms for PM01 12-DOF action / 24-joint body.
 
     Similar to G1 29-DOF rewards with arm/waist deviation penalties to keep
-    upper body stable while legs walk.
+    upper body stable while legs walk. Upper body joints are not actuated
+    but are penalized for deviating from default (passive compliance).
     """
 
     # -- task
@@ -346,7 +349,7 @@ class RewardsCfg:
 
 @configclass
 class TerminationsCfg:
-    """Termination terms for PM01 24-DOF."""
+    """Termination terms for PM01."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.3})
@@ -363,7 +366,7 @@ class CurriculumCfg:
 
 @configclass
 class RobotEnvCfg(ManagerBasedRLEnvCfg):
-    """PM01 24-DOF velocity-tracking environment configuration."""
+    """PM01 12-DOF action / 24-joint body velocity-tracking environment."""
 
     scene: RobotSceneCfg = RobotSceneCfg(num_envs=4096, env_spacing=2.5)
     observations: ObservationsCfg = ObservationsCfg()
