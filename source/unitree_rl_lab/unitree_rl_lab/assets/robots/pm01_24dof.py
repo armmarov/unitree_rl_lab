@@ -32,13 +32,13 @@ PM01_24DOF_CFG = UnitreeArticulationCfg(
             "j13_shoulder_pitch_l": 0.0,
             "j14_shoulder_roll_l": 0.25,
             "j15_shoulder_yaw_l": 0.0,
-            "j16_elbow_pitch_l": 0.97,
+            "j16_elbow_pitch_l": 0.7,
             "j17_elbow_yaw_l": 0.0,
             # Right arm
             "j18_shoulder_pitch_r": 0.0,
             "j19_shoulder_roll_r": -0.25,
             "j20_shoulder_yaw_r": 0.0,
-            "j21_elbow_pitch_r": 0.97,
+            "j21_elbow_pitch_r": 0.7,
             "j22_elbow_yaw_r": 0.0,
             # Head
             "j23_head_yaw": 0.0,
