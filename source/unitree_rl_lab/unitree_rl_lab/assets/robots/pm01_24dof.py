@@ -94,8 +94,8 @@ PM01_24DOF_CFG = UnitreeArticulationCfg(
             joint_names_expr=["j12_waist_yaw"],
             effort_limit_sim=52.0,
             velocity_limit_sim=35.2,
-            stiffness=200.0,          # increased from 50 — matches G1's waist stiffness
-            damping=10.0,             # increased from 5 — keeps upper body rigid
+            stiffness=200.0,          # matches G1's waist stiffness
+            damping=5.0,              # matches G1
             armature=0.0067,
         ),
         "shoulder": ImplicitActuatorCfg(
@@ -105,8 +105,8 @@ PM01_24DOF_CFG = UnitreeArticulationCfg(
             ],
             effort_limit_sim=52.0,
             velocity_limit_sim=35.2,
-            stiffness=100.0,          # increased from 40 — prevents arm flop
-            damping=10.0,             # increased from 4
+            stiffness=40.0,           # matches G1
+            damping=1.0,              # matches G1
             armature=0.0067,
         ),
         "elbow": ImplicitActuatorCfg(
@@ -116,16 +116,16 @@ PM01_24DOF_CFG = UnitreeArticulationCfg(
             ],
             effort_limit_sim=52.0,
             velocity_limit_sim=35.2,
-            stiffness=100.0,          # increased from 40 — prevents arm flop
-            damping=10.0,             # increased from 4
+            stiffness=40.0,           # matches G1
+            damping=1.0,              # matches G1
             armature=0.0067,
         ),
         "head": ImplicitActuatorCfg(
             joint_names_expr=["j23_head_yaw"],
             effort_limit_sim=52.0,
             velocity_limit_sim=35.2,
-            stiffness=100.0,          # increased from 40
-            damping=10.0,             # increased from 4
+            stiffness=40.0,           # matches G1
+            damping=1.0,              # matches G1
             armature=0.0067,
         ),
     },

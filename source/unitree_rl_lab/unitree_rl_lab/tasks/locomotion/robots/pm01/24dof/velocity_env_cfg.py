@@ -331,13 +331,9 @@ class RewardsCfg:
     )
 
     # -- undesired contacts (everything except ankle links, same as G1)
-    # Weight reduced from -1.0 to -0.1 for PM01 24-DOF because:
-    # PM01's arms are lower and lighter than G1's — they hit ground on every fall,
-    # producing -0.80/step (vs G1's -0.002). At -1.0, this drowns the learning signal.
-    # At -0.1, the penalty is still present but doesn't dominate early training.
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-0.1,
+        weight=-1.0,
         params={
             "threshold": 1,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=["(?!.*ankle.*).*"]),
@@ -347,11 +343,29 @@ class RewardsCfg:
 
 @configclass
 class TerminationsCfg:
-    """Termination terms for PM01."""
+    """Termination terms for PM01.
+
+    Includes contact-based termination for upper body links (base, knee,
+    shoulder, elbow, torso) — matches EngineAI's PM01 config. This prevents
+    accumulating large undesired_contacts penalties during falls.
+    """
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.3})
     bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.8})
+    illegal_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={
+            "threshold": 1.0,
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[
+                "link_base",
+                "link_knee_pitch_l", "link_knee_pitch_r",
+                "link_shoulder_pitch_l", "link_shoulder_pitch_r",
+                "link_elbow_pitch_l", "link_elbow_pitch_r",
+                "link_torso_yaw",
+            ]),
+        },
+    )
 
 
 @configclass
