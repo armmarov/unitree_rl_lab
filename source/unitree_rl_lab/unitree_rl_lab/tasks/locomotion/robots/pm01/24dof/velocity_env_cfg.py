@@ -331,9 +331,13 @@ class RewardsCfg:
     )
 
     # -- undesired contacts (everything except ankle links, same as G1)
+    # Weight reduced from -1.0 to -0.1 for PM01 24-DOF because:
+    # PM01's arms are lower and lighter than G1's — they hit ground on every fall,
+    # producing -0.80/step (vs G1's -0.002). At -1.0, this drowns the learning signal.
+    # At -0.1, the penalty is still present but doesn't dominate early training.
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-1.0,
+        weight=-0.1,
         params={
             "threshold": 1,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=["(?!.*ankle.*).*"]),
