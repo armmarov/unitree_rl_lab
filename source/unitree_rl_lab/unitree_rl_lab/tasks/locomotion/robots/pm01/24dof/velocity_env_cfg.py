@@ -330,13 +330,18 @@ class RewardsCfg:
         },
     )
 
-    # -- undesired contacts (everything except ankle links)
+    # -- undesired contacts (only penalize base and knee ground contact)
+    # The 24-DOF body has many links (arms, elbows, shoulders) that can touch
+    # ground during falls. Penalizing all non-ankle contacts was too aggressive
+    # (-0.81/step vs G1's -0.002) and prevented learning.
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
         params={
             "threshold": 1,
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=["(?!.*ankle.*).*"]),
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[
+                "link_base", "link_knee_pitch_l", "link_knee_pitch_r",
+            ]),
         },
     )
 
